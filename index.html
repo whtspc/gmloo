@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#dde7ea" />
     <title>Bij Gwen</title>
+    <meta name="claude:viewport-fit-sides" content="cover" />
     <style>
       :root {
         --paper: rgba(252, 249, 242, 0.94);
@@ -25,7 +26,8 @@
       .hidden { display: none !important; }
 
       .veil {
-        position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+        position: fixed; inset: 0; display: grid; place-items: center; padding-block: 16px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
         background: linear-gradient(rgba(221, 231, 234, 0.35), rgba(120, 140, 100, 0.35));
       }
       .card {

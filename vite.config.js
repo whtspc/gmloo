@@ -5,5 +5,5 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig({
   base: './',
   plugins: [viteSingleFile()],
-  build: { target: 'es2020', chunkSizeWarningLimit: 2000 },
+  build: { target: 'es2020', chunkSizeWarningLimit: 4000, assetsInlineLimit: 100000000 },
 });

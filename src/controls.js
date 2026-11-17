@@ -1,5 +1,4 @@
-import { WORLD } from './world/data.js';
-import { groundAt } from './world/terrain.js';
+import { groundAt, walkable } from './world/data.js';
 
 // Rondlopen op ooghoogte.
 //  - Computer: WASD / pijltjes om te lopen, slepen met de muis om rond te kijken.
@@ -10,7 +9,7 @@ const WALK = 2.1; // m/s — rustig wandeltempo
 const BRISK = 4.6;
 
 export function createControls(camera, canvas, stickEl) {
-  const state = { x: WORLD.start.x, z: WORLD.start.z, yaw: 0, pitch: 0, enabled: false };
+  const state = { x: 0, z: 0, yaw: 0, pitch: 0, enabled: false };
   const keys = new Set();
   const stick = { id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
   const look = { id: null, x: 0, y: 0 };
@@ -86,9 +85,6 @@ export function createControls(camera, canvas, stickEl) {
   };
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
-
-  const walkable = (x, z) =>
-    Math.hypot(x, z) < WORLD.walkRadius && groundAt(x, z) > WORLD.waterLevel - 0.12;
 
   function update(dt) {
     let fwd = -stick.dy;

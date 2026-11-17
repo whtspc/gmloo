@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { WORLD } from './data.js';
-import { heightAt } from './terrain.js';
+import { WORLD, heightAt } from './data.js';
 import { SKY } from './sky.js';
 
 // ---------- Water ----------
@@ -50,8 +49,8 @@ export function buildWater(fog) {
         #include <colorspace_fragment>
       }`,
   });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(190, 190).rotateX(-Math.PI / 2), mat);
-  mesh.position.set(95, WORLD.waterLevel, -15);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(WORLD.width, WORLD.depth).rotateX(-Math.PI / 2), mat);
+  mesh.position.set((WORLD.x0 + WORLD.x1) / 2, WORLD.waterLevel, (WORLD.z0 + WORLD.z1) / 2);
   return { mesh, update: (time) => (mat.uniforms.uTime.value = time) };
 }
 
@@ -88,22 +87,9 @@ export function buildBridge(b) {
   return g;
 }
 
-export function buildBench(b) {
-  const g = new THREE.Group();
-  for (let i = 0; i < 3; i++) g.add(box(1.7, 0.045, 0.13, 0, 0.45, -0.15 + i * 0.15));
-  for (let i = 0; i < 2; i++) g.add(box(1.7, 0.13, 0.04, 0, 0.66 + i * 0.17, -0.27 - i * 0.03));
-  for (const x of [-0.7, 0.7]) {
-    g.add(box(0.07, 0.45, 0.4, x, 0.225, 0, woodDark));
-    g.add(box(0.07, 0.5, 0.06, x, 0.68, -0.3, woodDark));
-  }
-  g.position.set(b.x, heightAt(b.x, b.z), b.z);
-  g.rotation.y = Math.atan2(b.facing[0] - b.x, b.facing[1] - b.z);
-  return g;
-}
-
 // ---------- Gwens plek ----------
-// We weten nog niet hoe de plek er precies uitziet, dus geen nagemaakt graf:
-// alleen een zacht, warm licht en haar naam.
+// De ligging is echt (g.E515 op de digitale kaart). Hoe de plek er precies uitziet
+// weten we nog niet, dus geen nagemaakt graf: alleen een zacht, warm licht en haar naam.
 
 function glowTexture() {
   const c = document.createElement('canvas');

@@ -25,7 +25,9 @@ Niets aan de ligging is verzonnen. De gegevens in `src/world/data/` zijn afgelei
   gemeten hoogtes van het terrein. Het gemeten waterpeil is −2,67 m NAP (ontwerp:
   −2,70); de heuvel aan de oostkant komt 7,9 m boven het water uit.
 - **OpenStreetMap** (© OpenStreetMap-bijdragers, ODbL): wandelpaden die niet op de
-  digitale kaart staan, waaronder gemaaide graspaden (`tools/extract_osm.py`).
+  digitale kaart staan, waaronder gemaaide graspaden (`tools/extract_osm.py`), en
+  de plek van bankjes, picknicktafels en gebouwen (`tools/build_objects.py`).
+  Gebouwhoogtes zijn gemeten in AHN5.
 - **Luchtfoto** (PDOK, voorjaar 2026): ter controle van alle paden; het oeverpad
   langs Gwens plek staat op geen van beide kaarten en is hiervan overgetrokken
   (`EXTRA_PATHS` in `tools/build_world.py`).
@@ -53,6 +55,9 @@ struiken. `src/world/season.js` bevat ook de zomerinstelling.
 - Kruidlaag, gras, bloemen en riet: algemene vormen. De bloemkleuren volgen de
   foto's op de website (korenbloem, klaproos, schermbloemen, kaasjeskruid, distel).
 - De smalle gemaaide sporen in het grasland in het zuidoosten (rond het labyrint).
-- Gebouwen, bankjes, de natuurspeelplaats en alles buiten het terrein ontbreken nog.
+- Bankjes: de plek klopt, de kijkrichting is geschat (naar het water of het pad).
+- Gebouwen: eenvoudige volumes met gemeten hoogte; kleur, materiaal en details
+  ontbreken.
+- De natuurspeelplaats, informatieborden en het labyrint ontbreken nog.
 - De eilanden zijn bereikbaar zoals de kaart ze tekent; alleen waar een pad echt
   over water gaat staat een brug.

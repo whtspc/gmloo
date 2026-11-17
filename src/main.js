@@ -5,6 +5,7 @@ import { buildVegetation } from './world/vegetation.js';
 import { windUniform } from './world/wind.js';
 import { buildSky, SKY } from './world/sky.js';
 import { buildWater, buildBridge, buildGwen } from './world/props.js';
+import { buildObjects } from './world/objects.js';
 import { createControls } from './controls.js';
 import { SEASON } from './world/season.js';
 
@@ -57,6 +58,7 @@ async function start() {
     water.mesh,
     gwen.group,
     ...WORLD.bridges.map(buildBridge),
+    buildObjects(),
   );
 
   const controls = createControls(camera, canvas, $('stick'));

@@ -28,16 +28,17 @@ def world(lat, lon):
             round(float(np.sin(THETA) * er + np.cos(THETA) * sr), 2))
 
 
-root = ET.parse(sys.argv[1]).getroot()
-nodes = {n.get('id'): (float(n.get('lat')), float(n.get('lon'))) for n in root.findall('node')}
-out = []
-for w in root.findall('way'):
-    t = {x.get('k'): x.get('v') for x in w.findall('tag')}
-    if t.get('highway') not in ('footway', 'path', 'steps', 'pedestrian', 'track'):
-        continue
-    pts = [world(*nodes[n.get('ref')]) for n in w.findall('nd') if n.get('ref') in nodes]
-    if len(pts) > 1:
-        out.append(dict(id=w.get('id'), surface=t.get('surface'), bridge=t.get('bridge') == 'yes',
-                        name=t.get('name'), pts=pts))
-json.dump(out, open(sys.argv[2], 'w'))
-print(len(out), 'paden')
+if __name__ == "__main__":
+    root = ET.parse(sys.argv[1]).getroot()
+    nodes = {n.get('id'): (float(n.get('lat')), float(n.get('lon'))) for n in root.findall('node')}
+    out = []
+    for w in root.findall('way'):
+        t = {x.get('k'): x.get('v') for x in w.findall('tag')}
+        if t.get('highway') not in ('footway', 'path', 'steps', 'pedestrian', 'track'):
+            continue
+        pts = [world(*nodes[n.get('ref')]) for n in w.findall('nd') if n.get('ref') in nodes]
+        if len(pts) > 1:
+            out.append(dict(id=w.get('id'), surface=t.get('surface'), bridge=t.get('bridge') == 'yes',
+                            name=t.get('name'), pts=pts))
+    json.dump(out, open(sys.argv[2], 'w'))
+    print(len(out), 'paden')

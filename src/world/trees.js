@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mulberry32, noise2 } from './noise.js';
 import { addWind } from './wind.js';
 import { SKY } from './sky.js';
+import { SEASON } from './season.js';
 
 // Jonge bomen en struiken zoals ze er op Geestmerloo staan (aanplant 2019-2020):
 // rank, dunne stam, open kroon waar je doorheen kijkt. Elke boom heeft echte takken
@@ -48,8 +49,22 @@ export function leafAtlas() {
       const ey = 112 + Math.sin(a) * L * 1.9;
       ctx.quadraticCurveTo(mx, my, ex, ey);
       ctx.stroke();
+      // fijne zijtwijgjes, die je vooral ziet als het blad gevallen is
+      ctx.lineWidth = 1.4;
+      for (let q = 0.3; q < 1; q += 0.14) {
+        const u = 1 - q;
+        const bx = 2 * u * q * mx + q * q * ex;
+        const by = u * u * 112 + 2 * u * q * my + q * q * ey;
+        const sa = a + (rng() < 0.5 ? -1 : 1) * (0.5 + rng() * 0.6);
+        const sl = 16 + rng() * 26;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(sa) * sl, by + Math.sin(sa) * sl);
+        ctx.stroke();
+      }
       for (let t = 0.25; t <= 1; t += 0.75 / (cell.n / 4)) {
         const u = 1 - t;
+        if (rng() > (i === 2 ? 1 : SEASON.leaves)) continue;
         tips.push([u * u * 0 + 2 * u * t * mx + t * t * ex, u * u * 112 + 2 * u * t * my + t * t * ey, a]);
       }
     }
@@ -58,7 +73,10 @@ export function leafAtlas() {
       const len = cell.len * (0.75 + rng() * 0.5);
       const wid = cell.wid * (0.75 + rng() * 0.5);
       const yellow = rng() < 0.12 ? 22 : 0;
-      ctx.fillStyle = `hsl(${cell.hue - yellow + (rng() - 0.5) * 16}, ${cell.sat + rng() * 14}%, ${cell.lum + rng() * 14}%)`;
+      // In de herfst verkleurt het blad; de kruiden (cel 2) blijven groen.
+      const autumn = SEASON.leafHue && i !== 2;
+      const hue = autumn ? SEASON.leafHue[0] + rng() * (SEASON.leafHue[1] - SEASON.leafHue[0]) : cell.hue - yellow + (rng() - 0.5) * 16;
+      ctx.fillStyle = `hsl(${hue}, ${cell.sat + rng() * 14 + (autumn ? 18 : 0)}%, ${cell.lum + rng() * 14 + (autumn ? 6 : 0)}%)`;
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rot);
@@ -74,6 +92,7 @@ export function leafAtlas() {
       ctx.restore();
     }
     for (let b = 0; b < (cell.berries ?? 0); b++) {
+      if (!tips.length) break;
       const [x, y] = tips[Math.floor(rng() * tips.length)];
       ctx.fillStyle = `hsl(${2 + rng() * 10}, 78%, ${38 + rng() * 12}%)`;
       ctx.beginPath();
@@ -88,9 +107,9 @@ export function leafAtlas() {
   const d = img.data;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 10) {
-      d[i] = 78;
-      d[i + 1] = 104;
-      d[i + 2] = 48;
+      d[i] = SEASON.leafHue ? 110 : 78;
+      d[i + 1] = SEASON.leafHue ? 92 : 104;
+      d[i + 2] = SEASON.leafHue ? 60 : 48;
     }
   }
   const tex = new THREE.DataTexture(new Uint8Array(d.buffer), S, S, THREE.RGBAFormat);
@@ -281,15 +300,15 @@ export function buildTrees({ renderer, trees, mobile, atlas }) {
 
   // Foto van elk model voor de bomen veraf.
   const snapScene = new THREE.Scene();
-  snapScene.add(new THREE.HemisphereLight(0xdcebff, 0x7d8a5a, 1.5));
-  const sun = new THREE.DirectionalLight(0xfff1d8, 2.1);
+  snapScene.add(new THREE.HemisphereLight(0xdcebff, 0x7d8a5a, SEASON.light.hemi));
+  const sun = new THREE.DirectionalLight(SEASON.light.sunColor, SEASON.light.sun);
   sun.position.copy(SKY.sunDir).multiplyScalar(100);
   snapScene.add(sun);
   const size = mobile ? 256 : 512;
   const prevTarget = renderer.getRenderTarget();
   const prevColor = renderer.getClearColor(new THREE.Color());
   const prevAlpha = renderer.getClearAlpha();
-  renderer.setClearColor(0x4e6830, 0);
+  renderer.setClearColor(SEASON.leafHue ? 0x6e5c3c : 0x4e6830, 0);
 
   const nearCap = mobile ? 260 : 900;
   const nearDist = mobile ? 42 : 85;

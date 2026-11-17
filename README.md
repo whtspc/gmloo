@@ -38,6 +38,12 @@ Niets aan de ligging is verzonnen. De gegevens in `src/world/data/` zijn afgelei
 Kaart en hoogtes zijn op elkaar gelegd via de vorm van het water
 (`tools/build_world.py`): draaiing −0,45°, Gwens plek op RD (113322,5 ; 521210,75).
 
+## Seizoen
+
+De wandeling staat in november, zoals op de foto's van de begrafenis: het meeste
+blad is gevallen, wat er hangt is geel en bruin, de bessen zitten nog aan de
+struiken. `src/world/season.js` bevat ook de zomerinstelling.
+
 ## Wat nog algemeen is
 
 - Boomsoorten: de plek en hoogte per boom zijn gemeten, de soort niet. De vormen

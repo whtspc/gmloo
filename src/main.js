@@ -6,6 +6,7 @@ import { windUniform } from './world/wind.js';
 import { buildSky, SKY } from './world/sky.js';
 import { buildWater, buildBridge, buildGwen } from './world/props.js';
 import { createControls } from './controls.js';
+import { SEASON } from './world/season.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('scene');
@@ -40,8 +41,8 @@ async function start() {
   scene.fog = new THREE.Fog(SKY.horizon, 90, 700);
   const camera = new THREE.PerspectiveCamera(mobile ? 68 : 62, 1, 0.1, 2600);
 
-  scene.add(new THREE.HemisphereLight(0xdcebff, 0x7d8a5a, 1.5));
-  const sun = new THREE.DirectionalLight(0xfff1d8, 2.1);
+  scene.add(new THREE.HemisphereLight(0xdcebff, 0x7d8a5a, SEASON.light.hemi));
+  const sun = new THREE.DirectionalLight(SEASON.light.sunColor, SEASON.light.sun);
   sun.position.copy(SKY.sunDir).multiplyScalar(100);
   scene.add(sun);
 
@@ -59,9 +60,9 @@ async function start() {
   );
 
   const controls = createControls(camera, canvas, $('stick'));
-  // Begin op het pad ten noorden van Gwens plek; zij ligt tussen het pad en de plas.
+  // Begin op het pad ten noorden van Gwens plek, die tussen het pad en de plas ligt.
   const startSpot = spotNear(23, 0.15, true);
-  // "Naar Gwen" zet je op het oeverpad dat vlak langs haar plek loopt.
+  // "Naar Gwen" zet je op het oeverpad dat vlak langs Gwens plek loopt.
   const nearSpot = spotNear(3, Math.PI, true);
   controls.place(startSpot.x, startSpot.z, WORLD.gwen.x, WORLD.gwen.z);
 

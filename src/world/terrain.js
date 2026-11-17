@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WORLD, cover, heightAt } from './data.js';
 import { fbm, smoothstep, lerp } from './noise.js';
+import { SEASON } from './season.js';
 
 function groundTexture(texel, shadows) {
   const w = Math.round(WORLD.width / texel);
@@ -31,6 +32,17 @@ function groundTexture(texel, shadows) {
         r = lerp(r, 74 + (n2 - 0.5) * 30, bos * 0.8);
         g = lerp(g, 98 + (n2 - 0.5) * 28, bos * 0.8);
         b = lerp(b, 46 + (n2 - 0.5) * 14, bos * 0.8);
+      }
+
+      // Seizoen: tint van het gras, en gevallen blad op de bosbodem.
+      r *= SEASON.ground[0];
+      g *= SEASON.ground[1];
+      b *= SEASON.ground[2];
+      if (SEASON.litter > 0 && bos > 0.01) {
+        const t = bos * SEASON.litter * (0.6 + n2 * 0.8);
+        r = lerp(r, 128 + (n2 - 0.5) * 50, t);
+        g = lerp(g, 100 + (n2 - 0.5) * 40, t);
+        b = lerp(b, 58 + (n2 - 0.5) * 24, t);
       }
 
       // Buiten het terrein: neutraal, we weten daar nog weinig van.

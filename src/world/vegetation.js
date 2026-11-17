@@ -4,6 +4,7 @@ import measuredTrees from './data/trees.json';
 import { mulberry32, fbm } from './noise.js';
 import { addWind } from './wind.js';
 import { buildTrees, leafAtlas } from './trees.js';
+import { SEASON } from './season.js';
 
 // Alles wat groeit. Bomen en struiken staan op hun gemeten plek; de vlakken (bos,
 // kruidenrijk grasland, oever) komen van de kaart. Hoe de begroeiing eruitziet is
@@ -160,7 +161,7 @@ export function buildVegetation({ mobile, renderer }) {
     dummy.updateMatrix();
     grass.setMatrixAt(n, dummy.matrix);
     // In het open grasland gaat het hoge gras naar goudgeel.
-    color.setHSL(0.2 + rng() * 0.09 - open * tall * 0.08, 0.36 + rng() * 0.18, 0.36 + rng() * 0.14 + open * tall * 0.1);
+    color.setHSL(SEASON.grass.hue + rng() * 0.09 - open * tall * 0.08, SEASON.grass.sat + rng() * 0.18, SEASON.grass.lum + rng() * 0.14 + open * tall * 0.1);
     grass.setColorAt(n, color);
     n++;
   }
@@ -191,7 +192,7 @@ export function buildVegetation({ mobile, renderer }) {
     dummy.scale.set(s * 0.8, s, s * 0.8);
     dummy.updateMatrix();
     reeds.setMatrixAt(n, dummy.matrix);
-    color.setHSL(0.15 + rng() * 0.08, 0.3 + rng() * 0.15, 0.4 + rng() * 0.12);
+    color.setHSL(SEASON.reed.hue + rng() * 0.08, SEASON.reed.sat + rng() * 0.15, SEASON.reed.lum + rng() * 0.12);
     reeds.setColorAt(n, color);
     n++;
   }
@@ -199,7 +200,7 @@ export function buildVegetation({ mobile, renderer }) {
   group.add(reeds);
 
   // --- Bloemen in het gras ---
-  const flowerCount = mobile ? 9000 : 22000;
+  const flowerCount = Math.max(1, Math.round((mobile ? 9000 : 22000) * SEASON.flowers));
   const fpos = new Float32Array(flowerCount * 3);
   const fcol = new Float32Array(flowerCount * 3);
   // Kleuren van de bloemen op de foto's: schermbloemen en duizendblad (wit), korenbloem
@@ -229,7 +230,7 @@ export function buildVegetation({ mobile, renderer }) {
     fgeo,
     new THREE.PointsMaterial({ size: 0.085, vertexColors: true, sizeAttenuation: true }),
   );
-  group.add(flowers);
+  if (SEASON.flowers > 0) group.add(flowers);
 
   const shadows = treeList.map((t) => ({ x: t.x, z: t.z, r: t.variant === 3 ? t.h * 0.7 : t.h * 0.32 }));
   return { group, shadows, update: trees.update };

@@ -89,7 +89,7 @@ export function buildBridge(b) {
 
 // ---------- Gwens plek ----------
 // De ligging is echt (g.E515 op de digitale kaart). Hoe de plek er precies uitziet
-// weten we nog niet, dus geen nagemaakt graf: alleen een zacht, warm licht en haar naam.
+// weten we nog niet, dus geen nagemaakt graf: alleen een zacht, warm licht en de naam.
 
 function glowTexture() {
   const c = document.createElement('canvas');

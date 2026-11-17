@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { mulberry32 } from './noise.js';
+import { SEASON } from './season.js';
 
 export const SKY = {
-  horizon: new THREE.Color(0xdde7ea),
-  zenith: new THREE.Color(0x6c9fd2),
-  sunDir: new THREE.Vector3(-0.45, 0.62, -0.64).normalize(),
+  horizon: new THREE.Color(SEASON.sky.horizon),
+  zenith: new THREE.Color(SEASON.sky.zenith),
+  sunDir: new THREE.Vector3(...SEASON.sky.sun).normalize(),
 };
 
 function cloudTexture(rng) {
@@ -68,7 +69,7 @@ export function buildSky() {
   const rng = mulberry32(77);
   const clouds = new THREE.Group();
   const textures = [cloudTexture(rng), cloudTexture(rng), cloudTexture(rng)];
-  for (let i = 0; i < 22; i++) {
+  for (let i = 0; i < SEASON.sky.clouds; i++) {
     const mat = new THREE.SpriteMaterial({
       map: textures[i % 3],
       fog: false,
@@ -76,11 +77,13 @@ export function buildSky() {
       transparent: true,
       opacity: 0.75 + rng() * 0.25,
     });
+    // Zware wolken hebben een grijze onderkant.
+    mat.color.setScalar(1 - rng() * SEASON.sky.cloudGrey * 0.5);
     const s = new THREE.Sprite(mat);
     const a = rng() * Math.PI * 2;
     const r = 550 + rng() * 450;
     s.position.set(Math.cos(a) * r, 110 + rng() * 260, Math.sin(a) * r);
-    const w = 320 + rng() * 380;
+    const w = (320 + rng() * 380) * (1 + SEASON.sky.cloudGrey * 0.6);
     s.scale.set(w, w * 0.36, 1);
     s.renderOrder = -9;
     clouds.add(s);

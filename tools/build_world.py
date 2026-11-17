@@ -79,18 +79,63 @@ EXTRA_PATHS = [
            (34.1, 0.8), (38.1, 0.9), (42.1, 1.0), (46.1, 1.1), (50.1, 1.0), (53.9, 0.0), (57.2, -2.3),
            (60.1, -5.0), (63.1, -7.7), (65.0, -9.5)]),
 ]
-for width, pts in EXTRA_PATHS:
+
+
+def polyline_cover(pts, width):
+    """Dekking 0..1 van een pad met de gegeven breedte langs een lijn."""
     pts = np.array(pts, np.float32)
     dist = np.full(wx.shape, 1e9, np.float32)
     for a, b in zip(pts[:-1], pts[1:]):
-        lo, hi = np.minimum(a, b) - 4, np.maximum(a, b) + 4
-        j0, j1 = int((lo[0] - X0) / C), int((hi[0] - X0) / C) + 1
-        i0, i1 = int((lo[1] - Z0) / C), int((hi[1] - Z0) / C) + 1
-        x, z = wx[i0:i1, j0:j1], wz[i0:i1, j0:j1]
         d = b - a
+        if d @ d < 1e-6:
+            continue
+        lo, hi = np.minimum(a, b) - 4, np.maximum(a, b) + 4
+        j0, j1 = max(int((lo[0] - X0) / C), 0), min(int((hi[0] - X0) / C) + 1, NX)
+        i0, i1 = max(int((lo[1] - Z0) / C), 0), min(int((hi[1] - Z0) / C) + 1, NZ)
+        if j0 >= j1 or i0 >= i1:
+            continue
+        x, z = wx[i0:i1, j0:j1], wz[i0:i1, j0:j1]
         t = np.clip(((x - a[0]) * d[0] + (z - a[1]) * d[1]) / (d @ d), 0, 1)
         dist[i0:i1, j0:j1] = np.minimum(dist[i0:i1, j0:j1], np.hypot(x - a[0] - t * d[0], z - a[1] - t * d[1]))
-    path = np.maximum(path, np.clip((width / 2 + 0.3 - dist) / 0.6, 0, 1))
+    return np.clip((width / 2 + 0.3 - dist) / 0.6, 0, 1)
+
+
+map_path = path.copy()
+for width, pts in EXTRA_PATHS:
+    path = np.maximum(path, polyline_cover(pts, width))
+
+# Paden uit OpenStreetMap die niet op de kaart staan. Gras = gemaaid pad.
+site_m = ndi.binary_fill_holes(ndi.binary_closing(from_map(cls > 0) > 0.5, iterations=4))
+far_from_map = ndi.distance_transform_edt(map_path < 0.3) * C
+far_from_known = ndi.distance_transform_edt(path < 0.3) * C
+mown = np.zeros_like(path)
+added = []
+for way in json.load(open(__file__.replace('build_world.py', 'osm_paths.json'))):
+    if way['bridge']:
+        continue
+    pts = np.array(way['pts'], np.float32)
+    seg = np.hypot(*np.diff(pts, axis=0).T)
+    steps = np.r_[0, np.cumsum(seg)]
+    t = np.arange(0, steps[-1], 1.0)
+    sx, sz = np.interp(t, steps, pts[:, 0]), np.interp(t, steps, pts[:, 1])
+    ok = (sx > X0 + 1) & (sx < X1 - 1) & (sz > Z0 + 1) & (sz < Z1 - 1)
+    if ok.sum() < 5:
+        continue
+    ii, jj = ((sz[ok] - Z0) / C).astype(int), ((sx[ok] - X0) / C).astype(int)
+    if site_m[ii, jj].mean() < 0.7 or (far_from_known[ii, jj] > 2.5).mean() < 0.35:
+        continue
+    grass_path = way['surface'] == 'grass'
+    c = polyline_cover(way['pts'], 1.3 if grass_path else 1.6) * site_m
+    c = np.where(far_from_known > 0.8, c, 0)
+    if grass_path:
+        mown = np.maximum(mown, c)
+    else:
+        path = np.maximum(path, c)
+    added.append((way['id'], way['surface'], round(float(steps[-1]))))
+mown = np.where(path > 0.3, 0, mown)
+print('paden uit OSM toegevoegd:', len(added), 'waarvan gras:', sum(1 for a in added if a[1] == 'grass'),
+      '| lengte %d m' % sum(a[2] for a in added))
+
 inside = from_map(cls > 0) > 0.5
 
 # Bruggen: pad met water eronder. Onder het pad kijken wat de buurvlakken zijn.
@@ -152,7 +197,7 @@ for i in range(1, n + 1):
 print('bruggen:', len(bridges))
 
 # Begaanbaar: het terrein zelf (gras, bos, pad, brug), aaneengesloten vanaf Gwens plek.
-walk = inside & ((grass + bos + path + grey) > 0.5) & ~water | bridge
+walk = inside & ((grass + bos + path + grey) > 0.5) & ~water | bridge | (site_m & ((path + mown) > 0.5) & ~water)
 lab, n = ndi.label(walk)
 walk = lab == lab[int((0 - Z0) / C), int((0 - X0) / C)]
 site = ndi.binary_fill_holes(ndi.binary_closing(inside, iterations=4))
@@ -166,6 +211,7 @@ def save(name, *chan):
 path_land = np.where(bridge, 0, path)
 save('cover', path_land, bos, water.astype(np.float32))
 save('mask', walk.astype(np.float32), np.where(site, 1.0, 0.0), np.maximum(road, grey))
+Image.fromarray(np.clip(mown * 255, 0, 255).astype(np.uint8)).save(f'{out}/mown.png', optimize=True)
 
 # Hoogte op 1 m, 16 bits verdeeld over rood en groen; blauw = begroeiingshoogte (dm).
 h1 = height.reshape(NZ // 2, 2, NX // 2, 2).mean((1, 3))

@@ -49,6 +49,15 @@ function groundTexture(texel, shadows) {
         b = lerp(b, 138 + (n2 - 0.5) * 14, road);
       }
 
+      // Gemaaid graspad: kort, lichter en frisser groen dan het gras eromheen.
+      const mown = cover('mown', x, z);
+      if (mown > 0.01) {
+        const t = smoothstep(0.25, 0.75, mown + (n2 - 0.5) * 0.3);
+        r = lerp(r, 132 + (n2 - 0.5) * 16, t);
+        g = lerp(g, 162 + (n2 - 0.5) * 14, t);
+        b = lerp(b, 78 + (n2 - 0.5) * 10, t);
+      }
+
       // Pad: licht, halfverhard.
       const path = cover('path', x, z);
       if (path > 0.01) {

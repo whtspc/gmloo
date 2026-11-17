@@ -1,11 +1,13 @@
 // De wereld komt uit echte bronnen (zie README en tools/):
 //   - vlakken (water, pad, bos, kruidenrijk grasland): digitale kaart van Geestmerloo
 //   - hoogtes: Actueel Hoogtebestand Nederland (AHN, via PDOK)
+//   - extra paden: OpenStreetMap (ook gemaaide graspaden) en de luchtfoto van PDOK
 //   - Gwens plek: g.E515 op de digitale kaart = de oorsprong (0, 0)
 // Eenheden: meters. x = oost, z = zuid, y = omhoog; y = 0 is het waterpeil.
 import coverUrl from './data/cover.png';
 import maskUrl from './data/mask.png';
 import heightUrl from './data/height.png';
+import mownUrl from './data/mown.png';
 import meta from './data/meta.json';
 
 export const WORLD = {
@@ -33,7 +35,7 @@ async function pixels(url) {
 export const grid = {};
 
 export async function loadWorld() {
-  const [cover, mask, height] = await Promise.all([coverUrl, maskUrl, heightUrl].map(pixels));
+  const [cover, mask, height, mown] = await Promise.all([coverUrl, maskUrl, heightUrl, mownUrl].map(pixels));
   const split = (img, channel) => {
     const out = new Uint8Array(img.width * img.height);
     for (let i = 0; i < out.length; i++) out[i] = img.data[i * 4 + channel];
@@ -47,6 +49,7 @@ export async function loadWorld() {
   grid.walk = split(mask, 0);
   grid.site = split(mask, 1);
   grid.road = split(mask, 2);
+  grid.mown = split(mown, 0); // gemaaide graspaden
 
   grid.hx = height.width;
   grid.hz = height.height;

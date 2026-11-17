@@ -73,7 +73,7 @@ function placeTrees(rng, mobile) {
       const inBos = cover('bos', tx, tz) > 0.6;
       if (cover('walk', tx, tz) < 0.9) continue;
       if (!inBos && measured < 3) continue;
-      if (cover('path', tx, tz) > 0.02 || heightAt(tx, tz) < 0.35) continue;
+      if (cover('path', tx, tz) > 0.02 || cover('mown', tx, tz) > 0.02 || heightAt(tx, tz) < 0.35) continue;
       if (Math.hypot(tx - gwen.x, tz - gwen.z) < 4) continue;
       const h = Math.max(measured, 2.6 + rng() * 3.4);
       list.push({ x: tx, z: tz, h: Math.min(h, 22) });
@@ -167,7 +167,7 @@ export function buildVegetation({ mobile }) {
     const r = Math.pow(rng(), 1.25) * 260;
     const x = WORLD.gwen.x + Math.cos(a) * r;
     const z = WORLD.gwen.z + Math.sin(a) * r;
-    if (cover('walk', x, z) < 0.5 || cover('path', x, z) > 0.15) continue;
+    if (cover('walk', x, z) < 0.5 || cover('path', x, z) > 0.15 || cover('mown', x, z) > 0.2) continue;
     const h = heightAt(x, z);
     if (h < 0.1 || onBridge(x, z, 0.3)) continue;
     const tall = fbm(x * 0.08 + 9, z * 0.08, 2);
@@ -226,7 +226,7 @@ export function buildVegetation({ mobile }) {
     const r = Math.pow(rng(), 1.1) * 300;
     const x = WORLD.gwen.x + Math.cos(a) * r;
     const z = WORLD.gwen.z + Math.sin(a) * r;
-    if (cover('walk', x, z) < 0.5 || cover('path', x, z) > 0.1) continue;
+    if (cover('walk', x, z) < 0.5 || cover('path', x, z) > 0.1 || cover('mown', x, z) > 0.2) continue;
     // Kruidenrijk grasland bloeit het meest; in het bos veel minder.
     const inBos = cover('bos', x, z);
     if (fbm(x * 0.045 + 3, z * 0.045 + 8, 3) < 0.44 + inBos * 0.12) continue;

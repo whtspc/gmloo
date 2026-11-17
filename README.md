@@ -24,9 +24,11 @@ Niets aan de ligging is verzonnen. De gegevens in `src/world/data/` zijn afgelei
 - **Actueel Hoogtebestand Nederland** (AHN, via PDOK, `dtm_05m` en `dsm_05m`): de
   gemeten hoogtes van het terrein. Het gemeten waterpeil is −2,67 m NAP (ontwerp:
   −2,70); de heuvel aan de oostkant komt 7,9 m boven het water uit.
-- **Luchtfoto** (PDOK, voorjaar 2026): paden die niet op de kaart staan, zoals het
-  oeverpad langs Gwens plek, zijn hiervan overgetrokken (`EXTRA_PATHS` in
-  `tools/build_world.py`).
+- **OpenStreetMap** (© OpenStreetMap-bijdragers, ODbL): wandelpaden die niet op de
+  digitale kaart staan, waaronder gemaaide graspaden (`tools/extract_osm.py`).
+- **Luchtfoto** (PDOK, voorjaar 2026): ter controle van alle paden; het oeverpad
+  langs Gwens plek staat op geen van beide kaarten en is hiervan overgetrokken
+  (`EXTRA_PATHS` in `tools/build_world.py`).
 - **Ontwerptekening 2019** (Ada Wille / Limes Landschapsadvies): diepte van de plas
   (ca. 1,5 m) en de ondiepe oeverzones met rietkragen.
 
@@ -38,6 +40,7 @@ Kaart en hoogtes zijn op elkaar gelegd via de vorm van het water
 - Afzonderlijke bomen: ze staan waar de kaart bos aangeeft, maar plek, soort en
   hoogte per boom zijn niet bekend (de aanplant is van 2019–2020).
 - Gras, bloemen en riet: algemene vormen, geen soorten.
+- De smalle gemaaide sporen in het grasland in het zuidoosten (rond het labyrint).
 - Gebouwen, bankjes, de natuurspeelplaats en alles buiten het terrein ontbreken nog.
 - De eilanden zijn bereikbaar zoals de kaart ze tekent; alleen waar een pad echt
   over water gaat staat een brug.

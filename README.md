@@ -24,6 +24,9 @@ Niets aan de ligging is verzonnen. De gegevens in `src/world/data/` zijn afgelei
 - **Actueel Hoogtebestand Nederland** (AHN, via PDOK, `dtm_05m` en `dsm_05m`): de
   gemeten hoogtes van het terrein. Het gemeten waterpeil is −2,67 m NAP (ontwerp:
   −2,70); de heuvel aan de oostkant komt 7,9 m boven het water uit.
+- **Luchtfoto** (PDOK, voorjaar 2026): paden die niet op de kaart staan, zoals het
+  oeverpad langs Gwens plek, zijn hiervan overgetrokken (`EXTRA_PATHS` in
+  `tools/build_world.py`).
 - **Ontwerptekening 2019** (Ada Wille / Limes Landschapsadvies): diepte van de plas
   (ca. 1,5 m) en de ondiepe oeverzones met rietkragen.
 

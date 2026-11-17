@@ -59,8 +59,9 @@ async function start() {
 
   const controls = createControls(camera, canvas, $('stick'));
   // Begin op het pad ten noorden van Gwens plek; zij ligt tussen het pad en de plas.
-  const startSpot = spotNear(14, 0.5, true);
-  const nearSpot = spotNear(4.5, 0, false);
+  const startSpot = spotNear(23, 0.15, true);
+  // "Naar Gwen" zet je op het oeverpad dat vlak langs haar plek loopt.
+  const nearSpot = spotNear(3, Math.PI, true);
   controls.place(startSpot.x, startSpot.z, WORLD.gwen.x, WORLD.gwen.z);
 
   function resize() {

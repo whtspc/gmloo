@@ -67,6 +67,30 @@ def inpaint(a, valid):
 
 
 grass, bos, water_m, path, grey, road = (from_map(cls == i) for i in (1, 2, 3, 4, 5, 6))
+
+# Paden die niet op de kaart staan, overgetrokken van de luchtfoto (PDOK, voorjaar 2026).
+# [breedte in m, punten (x, z)]
+EXTRA_PATHS = [
+    # Oeverpad langs de noordkant van de plas, tussen de bosstrook en het water;
+    # loopt op 3 m langs Gwens plek.
+    (2.0, [(-40.1, 23.9), (-37.1, 21.3), (-34.2, 18.7), (-31.1, 16.4), (-27.8, 14.1), (-24.3, 12.2),
+           (-20.7, 10.4), (-17.0, 8.9), (-13.2, 7.4), (-9.5, 6.0), (-5.7, 4.8), (-1.8, 3.8), (2.2, 3.1),
+           (6.1, 2.4), (10.1, 1.9), (14.1, 1.4), (18.1, 1.0), (22.1, 0.8), (26.1, 0.7), (30.1, 0.7),
+           (34.1, 0.8), (38.1, 0.9), (42.1, 1.0), (46.1, 1.1), (50.1, 1.0), (53.9, 0.0), (57.2, -2.3),
+           (60.1, -5.0), (63.1, -7.7), (65.0, -9.5)]),
+]
+for width, pts in EXTRA_PATHS:
+    pts = np.array(pts, np.float32)
+    dist = np.full(wx.shape, 1e9, np.float32)
+    for a, b in zip(pts[:-1], pts[1:]):
+        lo, hi = np.minimum(a, b) - 4, np.maximum(a, b) + 4
+        j0, j1 = int((lo[0] - X0) / C), int((hi[0] - X0) / C) + 1
+        i0, i1 = int((lo[1] - Z0) / C), int((hi[1] - Z0) / C) + 1
+        x, z = wx[i0:i1, j0:j1], wz[i0:i1, j0:j1]
+        d = b - a
+        t = np.clip(((x - a[0]) * d[0] + (z - a[1]) * d[1]) / (d @ d), 0, 1)
+        dist[i0:i1, j0:j1] = np.minimum(dist[i0:i1, j0:j1], np.hypot(x - a[0] - t * d[0], z - a[1] - t * d[1]))
+    path = np.maximum(path, np.clip((width / 2 + 0.3 - dist) / 0.6, 0, 1))
 inside = from_map(cls > 0) > 0.5
 
 # Bruggen: pad met water eronder. Onder het pad kijken wat de buurvlakken zijn.

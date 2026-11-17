@@ -1,58 +1,44 @@
 import * as THREE from 'three';
-import { WORLD, cover, heightAt, canopyAt, onBridge } from './data.js';
+import { WORLD, cover, heightAt, onBridge } from './data.js';
+import measuredTrees from './data/trees.json';
 import { mulberry32, fbm } from './noise.js';
 import { addWind } from './wind.js';
 import { buildTrees, leafAtlas } from './trees.js';
 
-// Alles wat groeit. De vlakken (bos, kruidenrijk grasland, oever) komen van de kaart;
-// hoe de begroeiing eruitziet is afgekeken van foto's van Geestmerloo. Waar precies
-// elke boom staat en welke soort het is, weten we nog niet.
+// Alles wat groeit. Bomen en struiken staan op hun gemeten plek; de vlakken (bos,
+// kruidenrijk grasland, oever) komen van de kaart. Hoe de begroeiing eruitziet is
+// afgekeken van foto's van Geestmerloo; soorten zijn nog niet bekend.
 
 const dummy = new THREE.Object3D();
 const color = new THREE.Color();
 
-// Bomen en struiken staan waar de kaart bos aangeeft. De aanplant is van 2019-2020:
-// jonge bomen van zo'n 4 tot 9 m. Waar het AHN hogere begroeiing heeft gemeten
-// (oudere bomen), nemen we die hoogte over.
-function placeTrees(rng, mobile) {
+// Bomen en struiken staan op de plek waar ze in 2023 zijn gemeten (AHN5): elke top in
+// de hoogtemeting is één boom of struik, met de toen gemeten hoogte. De aanplant is
+// van 2019-2020 en sindsdien doorgegroeid; die groei is een schatting.
+function grownHeight(h2023) {
+  if (h2023 >= 8) return h2023 + 0.5; // oudere bomen groeien nog maar langzaam
+  if (h2023 < 1.7) return h2023 + 1; // struiken
+  return Math.min(11, h2023 * 1.3 + 2.6); // jonge bomen: ruim een meter per jaar
+}
+
+function placeTrees(rng) {
   const list = [];
-  const cell = mobile ? 6 : 4.6; // gemiddeld één boom per vak van deze maat
   const { gwen } = WORLD;
-  const free = (x, z) =>
-    cover('walk', x, z) > 0.9 &&
-    cover('path', x, z) < 0.02 &&
-    cover('mown', x, z) < 0.02 &&
-    heightAt(x, z) > 0.35 &&
-    Math.hypot(x - gwen.x, z - gwen.z) > 3.5;
-  const add = (x, z, h, variant) => {
-    const tint = new THREE.Color().setHSL(0.22 + rng() * 0.1, 0.25, 0.78 + rng() * 0.2);
+  for (const [x, z, h2023] of measuredTrees) {
+    if (cover('path', x, z) > 0.6 || cover('mown', x, z) > 0.6) continue;
+    if (Math.hypot(x - gwen.x, z - gwen.z) < 1.2) continue;
+    const h = grownHeight(h2023);
+    // Soorten zijn niet bekend; vormen staan in groepjes bij elkaar, zoals in een plantvak.
+    const patch = fbm(x * 0.03 + 5, z * 0.03 + 2, 2) + (rng() - 0.5) * 0.25;
+    const variant = h2023 < 1.7 ? 3 : h > 11 ? 2 : patch < 0.38 ? 0 : patch < 0.56 ? 1 : 2;
     list.push({
       x, z, h, variant,
       y: heightAt(x, z),
       rot: rng() * Math.PI * 2,
-      wide: 0.85 + rng() * 0.35,
+      wide: (h > 11 ? 1.25 : 0.85) + rng() * 0.35,
       model: variant * 2 + (rng() < 0.5 ? 0 : 1),
-      tint,
+      tint: new THREE.Color().setHSL(0.22 + rng() * 0.1, 0.25, 0.78 + rng() * 0.2),
     });
-  };
-  for (let z = WORLD.z0; z < WORLD.z1; z += cell) {
-    for (let x = WORLD.x0; x < WORLD.x1; x += cell) {
-      const tx = x + rng() * cell;
-      const tz = z + rng() * cell;
-      const measured = canopyAt(tx, tz);
-      const inBos = cover('bos', tx, tz) > 0.6;
-      if ((!inBos && measured < 3) || !free(tx, tz)) continue;
-      // Soorten staan in groepjes bij elkaar, zoals in een plantvak.
-      const patch = fbm(tx * 0.03 + 5, tz * 0.03 + 2, 2) + (rng() - 0.5) * 0.25;
-      const variant = patch < 0.38 ? 0 : patch < 0.56 ? 1 : 2;
-      add(tx, tz, Math.min(22, Math.max(measured, 4.2 + rng() * 4.6)), variant);
-      // Struiken tussen de bomen.
-      if (inBos && rng() < 0.45) {
-        const sx = tx + (rng() - 0.5) * cell;
-        const sz = tz + (rng() - 0.5) * cell;
-        if (cover('bos', sx, sz) > 0.5 && free(sx, sz)) add(sx, sz, 1.8 + rng() * 1.6, 3);
-      }
-    }
   }
   return list;
 }
@@ -61,7 +47,7 @@ export function buildVegetation({ mobile, renderer }) {
   const rng = mulberry32(WORLD.seed);
   const group = new THREE.Group();
   const atlas = leafAtlas();
-  const treeList = placeTrees(rng, mobile);
+  const treeList = placeTrees(rng);
   const trees = buildTrees({ renderer, trees: treeList, mobile, atlas });
   group.add(trees.group);
 

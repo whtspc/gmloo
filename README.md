@@ -29,6 +29,9 @@ Niets aan de ligging is verzonnen. De gegevens in `src/world/data/` zijn afgelei
 - **Luchtfoto** (PDOK, voorjaar 2026): ter controle van alle paden; het oeverpad
   langs Gwens plek staat op geen van beide kaarten en is hiervan overgetrokken
   (`EXTRA_PATHS` in `tools/build_world.py`).
+- **AHN5** (gevlogen in 2023, basisdata.nl): de plek en hoogte van elke boom en
+  struik, ook buiten het terrein (`tools/detect_trees.py`). De groei sinds 2023 is
+  geschat.
 - **Ontwerptekening 2019** (Ada Wille / Limes Landschapsadvies): diepte van de plas
   (ca. 1,5 m) en de ondiepe oeverzones met rietkragen.
 
@@ -37,10 +40,10 @@ Kaart en hoogtes zijn op elkaar gelegd via de vorm van het water
 
 ## Wat nog algemeen is
 
-- Afzonderlijke bomen en struiken: ze staan waar de kaart bos aangeeft, maar plek en
-  soort per boom zijn niet bekend (de aanplant is van 2019–2020). De vormen zijn
-  afgekeken van foto's: ranke jonge bomen met open kroon (waaronder een berkachtige
-  met lichte stam) en meerstammige struiken met rode bessen.
+- Boomsoorten: de plek en hoogte per boom zijn gemeten, de soort niet. De vormen
+  zijn afgekeken van foto's: ranke jonge bomen met open kroon (waaronder een
+  berkachtige met lichte stam) en meerstammige struiken met rode bessen. Bomen die
+  na 2023 zijn geplant of toen nog lager dan ruim een meter waren, ontbreken.
 - Kruidlaag, gras, bloemen en riet: algemene vormen. De bloemkleuren volgen de
   foto's op de website (korenbloem, klaproos, schermbloemen, kaasjeskruid, distel).
 - De smalle gemaaide sporen in het grasland in het zuidoosten (rond het labyrint).

@@ -37,9 +37,12 @@ Kaart en hoogtes zijn op elkaar gelegd via de vorm van het water
 
 ## Wat nog algemeen is
 
-- Afzonderlijke bomen: ze staan waar de kaart bos aangeeft, maar plek, soort en
-  hoogte per boom zijn niet bekend (de aanplant is van 2019–2020).
-- Gras, bloemen en riet: algemene vormen, geen soorten.
+- Afzonderlijke bomen en struiken: ze staan waar de kaart bos aangeeft, maar plek en
+  soort per boom zijn niet bekend (de aanplant is van 2019–2020). De vormen zijn
+  afgekeken van foto's: ranke jonge bomen met open kroon (waaronder een berkachtige
+  met lichte stam) en meerstammige struiken met rode bessen.
+- Kruidlaag, gras, bloemen en riet: algemene vormen. De bloemkleuren volgen de
+  foto's op de website (korenbloem, klaproos, schermbloemen, kaasjeskruid, distel).
 - De smalle gemaaide sporen in het grasland in het zuidoosten (rond het labyrint).
 - Gebouwen, bankjes, de natuurspeelplaats en alles buiten het terrein ontbreken nog.
 - De eilanden zijn bereikbaar zoals de kaart ze tekent; alleen waar een pad echt

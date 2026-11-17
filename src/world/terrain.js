@@ -62,9 +62,9 @@ function groundTexture(texel, shadows) {
       const path = cover('path', x, z);
       if (path > 0.01) {
         const t = smoothstep(0.3, 0.7, path + (n2 - 0.5) * 0.25);
-        r = lerp(r, 204 + (n2 - 0.5) * 22, t);
-        g = lerp(g, 192 + (n2 - 0.5) * 20, t);
-        b = lerp(b, 158 + (n2 - 0.5) * 18, t);
+        r = lerp(r, 212 + (n2 - 0.5) * 24, t);
+        g = lerp(g, 196 + (n2 - 0.5) * 22, t);
+        b = lerp(b, 164 + (n2 - 0.5) * 20, t);
       }
 
       // Oever en bodem van de plas.

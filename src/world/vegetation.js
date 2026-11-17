@@ -1,132 +1,127 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WORLD, cover, heightAt, canopyAt, onBridge } from './data.js';
 import { mulberry32, fbm } from './noise.js';
+import { addWind } from './wind.js';
+import { buildTrees, leafAtlas } from './trees.js';
 
-// Alles wat groeit. Bewust algemeen gehouden: "een jonge loofboom", "een struik",
-// "gras met bloemen" — geen soorten, tot we het beplantingsplan hebben.
+// Alles wat groeit. De vlakken (bos, kruidenrijk grasland, oever) komen van de kaart;
+// hoe de begroeiing eruitziet is afgekeken van foto's van Geestmerloo. Waar precies
+// elke boom staat en welke soort het is, weten we nog niet.
 
 const dummy = new THREE.Object3D();
 const color = new THREE.Color();
 
-export const windUniform = { value: 0 };
-
-// Laat gras en riet zacht meebewegen met de wind.
-function addWind(material, strength) {
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uTime = windUniform;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nuniform float uTime;')
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>
-        #ifdef USE_INSTANCING
-          float ph = instanceMatrix[3].x * 0.35 + instanceMatrix[3].z * 0.27;
-          float sway = sin(uTime * 1.3 + ph) + 0.5 * sin(uTime * 2.9 + ph * 1.7);
-          transformed.x += sway * ${strength.toFixed(3)} * position.y * position.y;
-          transformed.z += cos(uTime * 1.1 + ph) * ${(strength * 0.6).toFixed(3)} * position.y * position.y;
-        #endif`,
-      );
-  };
-  return material;
-}
-
-function blobGeometry(detail, parts) {
-  const geos = parts.map(([x, y, z, r, sy]) => {
-    const g = new THREE.IcosahedronGeometry(r, detail);
-    const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      const n = 1 + (fbm(p.getX(i) * 2.1 + x * 7, p.getY(i) * 2.1 + p.getZ(i) * 1.3 + y * 5, 2) - 0.5) * 0.5;
-      p.setXYZ(i, p.getX(i) * n, p.getY(i) * n * sy, p.getZ(i) * n);
-    }
-    g.translate(x, y, z);
-    g.computeVertexNormals();
-    return g;
-  });
-  const merged = mergeGeometries(geos);
-  // Onderkant iets donkerder voor diepte.
-  const p = merged.attributes.position;
-  const cols = new Float32Array(p.count * 3);
-  merged.computeBoundingBox();
-  const { min, max } = merged.boundingBox;
-  for (let i = 0; i < p.count; i++) {
-    const t = (p.getY(i) - min.y) / (max.y - min.y);
-    const v = 0.62 + 0.38 * t;
-    cols.set([v, v, v], i * 3);
-  }
-  merged.setAttribute('color', new THREE.BufferAttribute(cols, 3));
-  return merged;
-}
-
-// Bomen staan waar de kaart bos aangeeft. De aanplant is jong (2019-2020);
-// de precieze plek en soort per boom kennen we nog niet. Waar het AHN al hogere
-// begroeiing heeft gemeten, nemen we die hoogte over.
+// Bomen en struiken staan waar de kaart bos aangeeft. De aanplant is van 2019-2020:
+// jonge bomen van zo'n 4 tot 9 m. Waar het AHN hogere begroeiing heeft gemeten
+// (oudere bomen), nemen we die hoogte over.
 function placeTrees(rng, mobile) {
   const list = [];
-  const cell = mobile ? 6.5 : 5; // gemiddeld één boom per vak van deze maat
+  const cell = mobile ? 6 : 4.6; // gemiddeld één boom per vak van deze maat
   const { gwen } = WORLD;
+  const free = (x, z) =>
+    cover('walk', x, z) > 0.9 &&
+    cover('path', x, z) < 0.02 &&
+    cover('mown', x, z) < 0.02 &&
+    heightAt(x, z) > 0.35 &&
+    Math.hypot(x - gwen.x, z - gwen.z) > 3.5;
+  const add = (x, z, h, variant) => {
+    const tint = new THREE.Color().setHSL(0.22 + rng() * 0.1, 0.25, 0.78 + rng() * 0.2);
+    list.push({
+      x, z, h, variant,
+      y: heightAt(x, z),
+      rot: rng() * Math.PI * 2,
+      wide: 0.85 + rng() * 0.35,
+      model: variant * 2 + (rng() < 0.5 ? 0 : 1),
+      tint,
+    });
+  };
   for (let z = WORLD.z0; z < WORLD.z1; z += cell) {
     for (let x = WORLD.x0; x < WORLD.x1; x += cell) {
       const tx = x + rng() * cell;
       const tz = z + rng() * cell;
       const measured = canopyAt(tx, tz);
       const inBos = cover('bos', tx, tz) > 0.6;
-      if (cover('walk', tx, tz) < 0.9) continue;
-      if (!inBos && measured < 3) continue;
-      if (cover('path', tx, tz) > 0.02 || cover('mown', tx, tz) > 0.02 || heightAt(tx, tz) < 0.35) continue;
-      if (Math.hypot(tx - gwen.x, tz - gwen.z) < 4) continue;
-      const h = Math.max(measured, 2.6 + rng() * 3.4);
-      list.push({ x: tx, z: tz, h: Math.min(h, 22) });
+      if ((!inBos && measured < 3) || !free(tx, tz)) continue;
+      // Soorten staan in groepjes bij elkaar, zoals in een plantvak.
+      const patch = fbm(tx * 0.03 + 5, tz * 0.03 + 2, 2) + (rng() - 0.5) * 0.25;
+      const variant = patch < 0.38 ? 0 : patch < 0.56 ? 1 : 2;
+      add(tx, tz, Math.min(22, Math.max(measured, 4.2 + rng() * 4.6)), variant);
+      // Struiken tussen de bomen.
+      if (inBos && rng() < 0.45) {
+        const sx = tx + (rng() - 0.5) * cell;
+        const sz = tz + (rng() - 0.5) * cell;
+        if (cover('bos', sx, sz) > 0.5 && free(sx, sz)) add(sx, sz, 1.8 + rng() * 1.6, 3);
+      }
     }
   }
   return list;
 }
 
-export function buildVegetation({ mobile }) {
+export function buildVegetation({ mobile, renderer }) {
   const rng = mulberry32(WORLD.seed);
   const group = new THREE.Group();
-  const trees = placeTrees(rng, mobile);
+  const atlas = leafAtlas();
+  const treeList = placeTrees(rng, mobile);
+  const trees = buildTrees({ renderer, trees: treeList, mobile, atlas });
+  group.add(trees.group);
 
-  // --- Bomen ---
-  const detail = 1;
-  const trunkGeo = new THREE.CylinderGeometry(0.035, 0.06, 1, 6).translate(0, 0.5, 0);
-  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6b5a48 });
-  const leafMat = new THREE.MeshLambertMaterial({ vertexColors: true });
-  const crownGeos = [
-    blobGeometry(detail, [[0, 0.68, 0, 0.3, 1.05], [0.14, 0.52, 0.08, 0.22, 0.9], [-0.13, 0.56, -0.1, 0.22, 0.9]]),
-    blobGeometry(detail, [[0, 0.66, 0, 0.22, 1.5], [0.05, 0.45, -0.05, 0.19, 1.0]]),
-    blobGeometry(detail, [[0, 0.72, 0, 0.27, 0.9], [-0.18, 0.58, 0.1, 0.2, 0.85], [0.17, 0.6, -0.06, 0.21, 0.85], [0, 0.48, 0.12, 0.17, 0.8]]),
-  ];
-
-  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, trees.length);
-  const buckets = crownGeos.map(() => []);
-  trees.forEach((t, i) => {
-    t.variant = Math.floor(rng() * crownGeos.length);
-    t.rot = rng() * Math.PI * 2;
-    t.y = heightAt(t.x, t.z);
-    dummy.position.set(t.x, t.y - 0.1, t.z);
-    dummy.rotation.set(0, t.rot, 0);
-    dummy.scale.set(t.h * 0.9, t.h * 0.62, t.h * 0.9);
+  // --- Kruidlaag: breedbladige kruiden onder en tussen de bomen ---
+  const herbGeo = (() => {
+    const pos = [];
+    const uv = [];
+    const nor = [];
+    const col = [];
+    const idx = [];
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI + 0.4;
+      const cx = Math.cos(a) * 0.3;
+      const cz = Math.sin(a) * 0.3;
+      const lean = (k - 1) * 0.12;
+      const base = pos.length / 3;
+      pos.push(-cx, 0, -cz, cx, 0, cz, cx + lean, 0.55, cz + lean, -cx + lean, 0.55, -cz + lean);
+      uv.push(0.005, 0.995, 0.495, 0.995, 0.495, 0.505, 0.005, 0.505); // groot blad
+      nor.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
+      col.push(0.6, 0.62, 0.55, 0.6, 0.62, 0.55, 1, 1, 1, 1, 1, 1);
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx);
+    return g;
+  })();
+  const herbMat = addWind(
+    new THREE.MeshLambertMaterial({ map: atlas, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide }),
+    0.05,
+  );
+  const herbCount = mobile ? 14000 : 36000;
+  const herbs = new THREE.InstancedMesh(herbGeo, herbMat, herbCount);
+  let n = 0;
+  for (let tries = 0; n < herbCount && tries < herbCount * 6; tries++) {
+    const a = rng() * Math.PI * 2;
+    const r = Math.pow(rng(), 1.2) * 220;
+    const x = WORLD.gwen.x + Math.cos(a) * r;
+    const z = WORLD.gwen.z + Math.sin(a) * r;
+    if (cover('walk', x, z) < 0.5 || cover('path', x, z) > 0.1 || cover('mown', x, z) > 0.15) continue;
+    // Vooral in het bos; in het grasland in plukken.
+    const inBos = cover('bos', x, z);
+    if (fbm(x * 0.11 + 20, z * 0.11, 2) < 0.66 - inBos * 0.16) continue;
+    const h = heightAt(x, z);
+    if (h < 0.2 || onBridge(x, z, 0.3)) continue;
+    const s = 0.45 + rng() * 0.6;
+    dummy.position.set(x, h - 0.03, z);
+    dummy.rotation.set(0, rng() * 6.28, 0);
+    dummy.scale.set(s, s * (0.7 + rng() * 0.5), s);
     dummy.updateMatrix();
-    trunks.setMatrixAt(i, dummy.matrix);
-    buckets[t.variant].push(t);
-  });
-  group.add(trunks);
-
-  buckets.forEach((bucket, v) => {
-    const mesh = new THREE.InstancedMesh(crownGeos[v], leafMat, bucket.length);
-    bucket.forEach((t, i) => {
-      const w = t.h * (0.85 + rng() * 0.3);
-      dummy.position.set(t.x, t.y, t.z);
-      dummy.rotation.set(0, t.rot, 0);
-      dummy.scale.set(w, t.h, w);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      color.setHSL(0.24 + rng() * 0.07, 0.34 + rng() * 0.16, 0.3 + rng() * 0.1);
-      mesh.setColorAt(i, color);
-    });
-    group.add(mesh);
-  });
+    herbs.setMatrixAt(n, dummy.matrix);
+    color.setHSL(0.2 + rng() * 0.1, 0.25, 0.8 + rng() * 0.2);
+    herbs.setColorAt(n, color);
+    n++;
+  }
+  herbs.count = n;
+  group.add(herbs);
 
   // --- Gras ---
   const bladeGeo = (() => {
@@ -160,7 +155,7 @@ export function buildVegetation({ mobile }) {
   );
   const grassCount = mobile ? 45000 : 110000;
   const grass = new THREE.InstancedMesh(bladeGeo, grassMat, grassCount);
-  let n = 0;
+  n = 0;
   for (let tries = 0; n < grassCount && tries < grassCount * 4; tries++) {
     // Voorlopig het dichtst rond Gwens plek; verder weg dunner.
     const a = rng() * Math.PI * 2;
@@ -171,13 +166,15 @@ export function buildVegetation({ mobile }) {
     const h = heightAt(x, z);
     if (h < 0.1 || onBridge(x, z, 0.3)) continue;
     const tall = fbm(x * 0.08 + 9, z * 0.08, 2);
-    const s = 0.3 + tall * 0.45 + rng() * 0.2;
+    const open = 1 - cover('bos', x, z);
+    const s = 0.3 + tall * (0.45 + open * 0.35) + rng() * 0.2;
     dummy.position.set(x, h - 0.02, z);
     dummy.rotation.set(0, rng() * 6.28, 0);
     dummy.scale.set(s * 1.5, s * 0.8, s * 1.5);
     dummy.updateMatrix();
     grass.setMatrixAt(n, dummy.matrix);
-    color.setHSL(0.2 + rng() * 0.09, 0.36 + rng() * 0.18, 0.36 + rng() * 0.14);
+    // In het open grasland gaat het hoge gras naar goudgeel.
+    color.setHSL(0.2 + rng() * 0.09 - open * tall * 0.08, 0.36 + rng() * 0.18, 0.36 + rng() * 0.14 + open * tall * 0.1);
     grass.setColorAt(n, color);
     n++;
   }
@@ -219,7 +216,9 @@ export function buildVegetation({ mobile }) {
   const flowerCount = mobile ? 9000 : 22000;
   const fpos = new Float32Array(flowerCount * 3);
   const fcol = new Float32Array(flowerCount * 3);
-  const palette = [0xffffff, 0xfff3c4, 0xf4d24a, 0xf4d24a, 0xc9a3e0, 0xf0b6c8, 0xffffff];
+  // Kleuren van de bloemen op de foto's: schermbloemen en duizendblad (wit), korenbloem
+  // (blauw), klaproos (oranjerood), kaasjeskruid (roze), distel en wikke (paars), geel.
+  const palette = [0xffffff, 0xffffff, 0xfbf6e0, 0x5d7fe6, 0x5d7fe6, 0xe9552b, 0xf3b9cf, 0xb58ad6, 0xf2d04a];
   n = 0;
   for (let tries = 0; n < flowerCount && tries < flowerCount * 8; tries++) {
     const a = rng() * 6.28;
@@ -242,10 +241,10 @@ export function buildVegetation({ mobile }) {
   fgeo.setAttribute('color', new THREE.BufferAttribute(fcol.subarray(0, n * 3), 3));
   const flowers = new THREE.Points(
     fgeo,
-    new THREE.PointsMaterial({ size: 0.075, vertexColors: true, sizeAttenuation: true }),
+    new THREE.PointsMaterial({ size: 0.085, vertexColors: true, sizeAttenuation: true }),
   );
   group.add(flowers);
 
-  const shadows = trees.map((t) => ({ x: t.x, z: t.z, r: t.h * 0.42 }));
-  return { group, shadows };
+  const shadows = treeList.map((t) => ({ x: t.x, z: t.z, r: t.variant === 3 ? t.h * 0.7 : t.h * 0.32 }));
+  return { group, shadows, update: trees.update };
 }

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { WORLD, loadWorld, cover, walkable } from './world/data.js';
 import { buildTerrain } from './world/terrain.js';
-import { buildVegetation, windUniform } from './world/vegetation.js';
+import { buildVegetation } from './world/vegetation.js';
+import { windUniform } from './world/wind.js';
 import { buildSky, SKY } from './world/sky.js';
 import { buildWater, buildBridge, buildGwen } from './world/props.js';
 import { createControls } from './controls.js';
@@ -45,7 +46,7 @@ async function start() {
   scene.add(sun);
 
   const sky = buildSky();
-  const vegetation = buildVegetation({ mobile });
+  const vegetation = buildVegetation({ mobile, renderer });
   const water = buildWater(scene.fog);
   const gwen = buildGwen();
   scene.add(
@@ -99,6 +100,7 @@ async function start() {
     const dt = Math.min(clock.getDelta(), 0.05);
     const time = clock.elapsedTime;
     controls.update(dt);
+    vegetation.update(camera);
     windUniform.value = time;
     water.update(time);
     gwen.update(time, camera);

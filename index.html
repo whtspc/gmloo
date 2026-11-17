@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#dde7ea" />
+    <title>Bij Gwen</title>
+    <style>
+      :root {
+        --paper: rgba(252, 249, 242, 0.94);
+        --ink: #33382f;
+        --ink-soft: #62695a;
+        --moss: #55683f;
+        --line: rgba(51, 56, 47, 0.16);
+        --sky: #dde7ea;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--ink);
+        font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
+      }
+      #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      .hidden { display: none !important; }
+
+      .veil {
+        position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+        background: linear-gradient(rgba(221, 231, 234, 0.35), rgba(120, 140, 100, 0.35));
+      }
+      .card {
+        width: min(100%, 430px); max-height: calc(100dvh - 32px); overflow: auto;
+        background: var(--paper); border-radius: 18px; padding: 28px 26px 24px;
+        box-shadow: 0 18px 60px rgba(40, 50, 30, 0.28);
+      }
+      .card h1 { font: italic 400 2.5rem/1.1 Georgia, "Times New Roman", serif; margin: 0 0 2px; }
+      .card h2 { font: italic 400 1.5rem/1.2 Georgia, "Times New Roman", serif; margin: 0 0 10px; }
+      .card .where { color: var(--ink-soft); font-size: 0.86rem; letter-spacing: 0.04em; margin: 0 0 16px; }
+      .card p { margin: 0 0 12px; }
+      .card .note { color: var(--ink-soft); font-size: 0.86rem; border-top: 1px solid var(--line); padding-top: 12px; }
+      .card dl { margin: 0 0 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 0.92rem; }
+      .card dt { color: var(--ink-soft); }
+      .card dd { margin: 0; }
+
+      button {
+        font: inherit; color: inherit; border: 0; cursor: pointer; border-radius: 999px;
+        touch-action: manipulation;
+      }
+      button:focus-visible { outline: 2px solid var(--moss); outline-offset: 2px; }
+      .primary { background: var(--moss); color: #fff; padding: 12px 22px; width: 100%; margin-top: 6px; font-weight: 600; }
+      .primary:disabled { opacity: 0.6; cursor: default; }
+
+      #hud { position: fixed; inset: 0; pointer-events: none; }
+      #hud .top {
+        position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right)); display: flex; gap: 8px; align-items: center;
+      }
+      #hud .place {
+        margin-right: auto; color: #fff; font: italic 1.05rem Georgia, serif;
+        text-shadow: 0 1px 8px rgba(30, 40, 20, 0.55);
+      }
+      #hud button {
+        pointer-events: auto; background: var(--paper); padding: 9px 16px; min-height: 42px;
+        box-shadow: 0 4px 16px rgba(40, 50, 30, 0.22);
+      }
+      #info-open { width: 42px; padding: 0; font: italic 600 1.1rem Georgia, serif; }
+
+      #stick {
+        position: fixed; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.16); border: 1.5px solid rgba(255, 255, 255, 0.55);
+        pointer-events: none; opacity: 0; transition: opacity 0.15s;
+      }
+      #stick.on { opacity: 1; }
+      #stick i {
+        position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8); transform: translate(-50%, -50%);
+      }
+      #fade { position: fixed; inset: 0; background: #f4f1e8; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+      #fade.on { opacity: 1; }
+      #loading { color: var(--ink-soft); font-size: 0.86rem; text-align: center; margin: 10px 0 0; }
+      .touch-only { display: none; }
+      @media (pointer: coarse) { .touch-only { display: revert; } .mouse-only { display: none; } }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="top">
+        <span class="place">Geestmerloo</span>
+        <button id="to-gwen" type="button">Naar Gwen</button>
+        <button id="info-open" type="button" aria-label="Uitleg">i</button>
+      </div>
+    </div>
+    <div id="stick"><i></i></div>
+    <div id="fade"></div>
+
+    <div id="info" class="veil hidden">
+      <div class="card">
+        <h2>Rondlopen</h2>
+        <dl class="mouse-only">
+          <dt>Lopen</dt><dd>W A S D of de pijltjestoetsen</dd>
+          <dt>Kijken</dt><dd>slepen met de muis</dd>
+          <dt>Sneller</dt><dd>Shift ingedrukt houden</dd>
+        </dl>
+        <dl class="touch-only">
+          <dt>Lopen</dt><dd>linkerduim: druk en schuif</dd>
+          <dt>Kijken</dt><dd>rechterduim: veeg over het scherm</dd>
+        </dl>
+        <p>De lichtzuil wijst van ver de weg naar Gwen.</p>
+        <p class="note">
+          Dit is een eerste schets. De sfeer van Geestmerloo zit erin — de plas met een eiland en een
+          bruggetje, glooiend grasland met bloemen, jonge bomen — maar de ligging van water, paden en
+          bomen klopt nog niet met de werkelijkheid. Dat verfijnen we met de plattegrond erbij.
+        </p>
+        <button id="info-close" class="primary" type="button">Verder wandelen</button>
+      </div>
+    </div>
+
+    <div id="intro" class="veil">
+      <div class="card">
+        <h1>Bij Gwen</h1>
+        <p class="where">NATUURBEGRAAFPLAATS GEESTMERLOO</p>
+        <p>Een plek om even te zijn, ook als je er niet heen kunt. Loop rustig rond, in je eigen tempo.</p>
+        <p class="mouse-only">Lopen met W A S D of de pijltjes, rondkijken door te slepen met de muis.</p>
+        <p class="touch-only">Linkerduim om te lopen, rechterduim om rond te kijken.</p>
+        <button id="begin" class="primary" type="button" disabled>Even geduld…</button>
+        <p id="loading">Het landschap wordt opgebouwd</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
